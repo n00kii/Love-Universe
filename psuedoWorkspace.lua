@@ -658,7 +658,7 @@ API:newClass('Block', {
         Generator = true;
         Default = true;
         EditMode = 3;
-    };
+     };
     {
         Name = 'Touched';
         Generator = true;

@@ -59,8 +59,7 @@ Block2 = psuedoLife:newObject('Block', Space);
 function love.load(args) --although this is called exactly at the beginning of the game, the rest of the game code outside runs first.
     table.foreach(args, print);
     loveWorld = psuedoPhysics:setWorld()
-
-end;
+end
 --dt is the change in time, basically.
 function love.update(dt) --seems to be a loop, this is equivalent to runtime except it's more of a 2d runtime env rather than a 3d runtime env
    --Block.Position.y = Block.Position.y+ 1;
@@ -79,6 +78,5 @@ function love.update(dt) --seems to be a loop, this is equivalent to runtime exc
     --[[Block.Type = 'fill'
     Block.Position.x = Block.Position.x + 1;
     Block2.Position.x = Block2.Position.x + 5;]]
-
 end
 -- Draw a coloured rectangle.
