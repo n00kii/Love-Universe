@@ -17,8 +17,15 @@
     }
 
     the difference between love.timer.sleep() and wait() is that one freezes the game, the other doesn't.
+
+    We also can switch between Love Universe events and Love Engine events
+    Mode:
+    0 - Love Universe event management
+    1 - Love Engine event management
 ]]
-local API = {};
+local API = {
+    Mode = 1;
+};
 local triggers = {};
 local connectionsCache = {};
 local signalNetwork = {};
@@ -33,18 +40,15 @@ API.destroyEvent = function(self, event)
     end;
 end;
 
-API.registerEvent = function(self, event)
-    if (API:eventExists(event) == false) then
-        triggers[event] = {Listeners = {}};
-        triggers[event].Remote = API:createEventRemote(event, triggers[event]);
-        return triggers[event].Remote;
-    else
-        return triggers[event].Remote;
-    end;
-end;
-
 API.getEvent = function(self, event)
     return triggers[event];
+end;
+
+API.loveHandlerExists = function(self, handlerName)
+    local ran, result = pcall(function()
+        return love.handlers[handlerName] ~= nil;
+    end);
+    return ran;
 end;
 
 API.getAllListeners = function(self, event)
@@ -57,6 +61,16 @@ API.registerListener = function(self, event)
     local eventTrigger = triggers[event];
     eventTrigger.Listeners[remote] = remote;
     return remote;
+end;
+
+API.registerEvent = function(self, event)
+    if (API:eventExists(event) == false) then
+        triggers[event] = {Listeners = {}};
+        triggers[event].Remote = API:createEventRemote(event, triggers[event]);
+        return triggers[event].Remote;
+    else
+        return triggers[event].Remote;
+    end;
 end;
 
 API.createEventRemote = function(self, event)
@@ -90,6 +104,15 @@ API.createListenerRemote = function(self, event)
     local remote = {};
     local listener = API:createListenerObject(event, remote);
     local cause;
+    if (API.Mode == 1) then
+        remote.loveId = psuedoWorkspace:stringRandom(255, true);
+        if (API:loveHandlerExists(remote.Id) == true) then
+            repeat
+                remote.loveId = psuedoWorkspace:stringRandom(255, true);
+            until
+                API:loveHandlerExists(remote.Id) == false;
+        end;
+    end;
     remote.connected = true;
     remote.getListener = function(self)
         if (self.connected == true) then
@@ -97,20 +120,41 @@ API.createListenerRemote = function(self, event)
         end;
     end;
     remote.setCause = function(self, causeFunction)
-        cause = causeFunction;
+        if (API.Mode == 1) then
+            love.handlers[remote.loveId] = causeFunction;
+        elseif (API.Mode == 0) then
+            cause = causeFunction;
+        end;  
     end;
     remote.disconnect = function(self)
         if (self.connected == true) then
             self.connected = false;
-            connectionsCache[listener] = nil;
-            triggers[event].Listeners[listener] = nil;
+            if (connectionsCache[listener] ~= nil) then
+                connectionsCache[listener] = nil;
+            end;
+            if (triggers[event].Listeners[listener] ~= nil) then
+                triggers[event].Listeners[listener] = nil;
+            end;
+            if (API.Mode == 1) then
+                love.handlers[remote.loveId] = nil;
+            end;
         end;
     end;
     remote.fire = function(self, ...)
         if (self.connected == true) then
             --we are probably supposed to add threading here
-            if (cause ~= nil) then
-                cause(...);
+            if (API.Mode == 0) then
+                if (cause ~= nil) then
+                    connectionsCache[listener] = listener;
+                    cause(...);
+                    connectionsCache[listener] = nil;
+                end;
+            elseif (API.Mode == 1) then
+                if (API:loveHandlerExists(remote.loveId) == true) then
+                    connectionsCache[listener] = listener;
+                    love.event.push(remote.loveId, ...);
+                    connectionsCache[listener] = nil;
+                end;
             end;
         end;
     end;
@@ -130,19 +174,9 @@ API.createListenerObject = function(self, event, remote)
         if (type(index):lower() == 'string' and remote.connected == true) then
             if (index:lower() == 'disconnect') then
                 return function(self)
-                    print('disconnect', self);
                     remote.connected = false;
                     remote:disconnect();
                 end;
-            --[[elseif (index:lower() == 'wait') then
-                return function()
-                    warn('This function is incomplete for now')
-                end;
-                
-                    psuedoThreading:waitUntilTrue(function()
-                        return signalNetwork[event] ~= nil;
-                    end);
-                ]]
             end;
         end;
     end;
@@ -160,11 +194,23 @@ local eventProperties = {
         default = function(self, void)
             --self is the event
             if (type(self):lower() == 'event') then
-                local remote = API:registerEvent(self);
-                local listenerFramework = remote:registerListener();
-                listenerFramework:setCause(void);
-                local listener = listenerFramework:getListener();
-                return listener;
+                if (API.Mode == 0) then --love universe
+                    if (type(self):lower() == 'event') then
+                        local remote = API:registerEvent(self);
+                        local listenerFramework = remote:registerListener();
+                        listenerFramework:setCause(void);
+                        local listener = listenerFramework:getListener();
+                        return listener;
+                    end;
+                elseif (API.Mode == 1) then --love engine
+                    if (type(self):lower() == 'event') then
+                        local remote = API:registerEvent(self);
+                        local listenerFramework = remote:registerListener();
+                        listenerFramework:setCause(void);
+                        local listener = listenerFramework:getListener();
+                        return listener;
+                    end;
+                end;
             end;
         end;
         edit_mode = 1;
