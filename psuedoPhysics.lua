@@ -1,6 +1,6 @@
 local API = {};
 
-API.update = function()
+API.update = function(dt)
     local CurrentStack = psuedoWorkspace:getStack();
     for i, v in next, CurrentStack do
         local actualObject = v.__object;

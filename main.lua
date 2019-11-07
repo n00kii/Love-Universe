@@ -36,6 +36,8 @@ local Space = CurrentWorld:GetUtility('Space');
 
 local Block = psuedoLife:newObject('Block', Space);
 local Event = Block.Touched;
+local pos = Vector.new(1,1)
+Block.Position = pos
 local Signal = Event:connect(function(a, b)
     print("Signal works!", a, b);
 end);
@@ -74,7 +76,8 @@ function love.update(dt) --seems to be a loop, this is equivalent to runtime exc
         CountedFPS = 0;
         currentTime = 0;
     end;
-    CountedFPS = CountedFPS + 1;
+	CountedFPS = CountedFPS + 1;
+	psuedoPhysics:update(dt)
    -- print(dt);
    
    -- Block.Position.x = Block.Position.x + .01;

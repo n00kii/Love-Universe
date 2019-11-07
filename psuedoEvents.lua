@@ -24,7 +24,7 @@
     1 - Love Engine event management
 ]]
 local API = {
-    Mode = 1;
+    Mode = 0;
 };
 local triggers = {};
 local connectionsCache = {};
